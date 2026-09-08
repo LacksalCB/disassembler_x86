@@ -1,0 +1,7 @@
+# Executables
+dis
+test
+
+# Build files
+*.o
+
