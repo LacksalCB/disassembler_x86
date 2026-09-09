@@ -8,7 +8,7 @@ OBJECTS = $(SOURCES:.c=.o)
 
 .PHONY: all clean
 
-all: $(EXEC)
+all: test $(EXEC)
 
 %.o: %.c %.h
 	gcc -o $@ -c $< $(CFLAGS)
@@ -19,6 +19,10 @@ $(EXEC): $(OBJECTS)
 run:
 	./dis test
 
+test:
+	gcc test.c -o test
+
 clean:
 	-rm *.o
 	-rm $(EXEC)
+	-rm test
