@@ -3,26 +3,30 @@ CC = gcc
 CFLAGS = -g -O2 -Wall -Wextra -pedantic -fsanitize=address
 LDFLAGS = -g -Wall -Wextra -O2 -fsanitize=address
 EXEC = dis
-SOURCES = $(wildcard *.c)
-OBJECTS = $(SOURCES:.c=.o)
+
+SRC_DIR = src
+BUILD_DIR = build
+
+SOURCES = $(wildcard $(SRC_DIR)/*.c)
+OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 .PHONY: all clean
 
 all: test $(EXEC)
 
-%.o: %.c %.h
-	gcc -o $@ -c $< $(CFLAGS)
-
 $(EXEC): $(OBJECTS)
-	gcc -o $@ $< $(LDFLAGS)
+	$(CC) $(OBJECTS) -o $(EXEC) $(LDFLAGS)
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) -o $@ -c $< $(CFLAGS)
 
 run:
 	./dis test
 
 test:
-	gcc test.c -o test
+	$(CC) test.c -o test
 
 clean:
-	-rm *.o
+	-rm $(BUILD_DIR)/*.o
 	-rm $(EXEC)
 	-rm test
