@@ -136,7 +136,6 @@ sh_entry_t* get_section(unsigned char* buff, e_header_t* e_header, const char* s
             section->name[strlen(name)] = 0;
             section->offset = uctoull(buff+e_header->e_shoff_val+(sh_entry_idx*0x40)+0x18, sizeof(uint64_t));
             section->size = uctoull(buff+e_header->e_shoff_val+(sh_entry_idx*0x40)+0x20, sizeof(uint64_t));
-            printf("Section: %s\nOffset: %lx\nSize: %lx\n\n", section->name, section->offset, section->size);
             break;
         }
         sh_entry_idx += 1;
@@ -178,9 +177,7 @@ sections_t* read_sh_headers(e_header_t* e_header, unsigned char* buff) {
 
 // Read offsets of every symbol
 // When printing, if current line = any offset of the symbols (plus pruning for stuff outside of text etc) insert symbol marker line
-symtab_t* read_symtab(unsigned char* buff, sections_t* code_sections) {
-    print_bytes(buff, code_sections[6].sh_entry->offset, code_sections[6].sh_entry->offset+code_sections[6].sh_entry->size);
-  
+symtab_t* read_symtab(unsigned char* buff, sections_t* code_sections) {  
     symtab_t* symtab = malloc(1 * sizeof(struct symtab));
     symtab->size = 1;
     for (uint64_t i = 0x18; i < code_sections[6].sh_entry->size; i += 0x18) {
@@ -211,8 +208,6 @@ symtab_t* read_symtab(unsigned char* buff, sections_t* code_sections) {
         symtab[symtab->size-1].symtab_entry = entry; 
         symtab->size++;
         symtab = realloc(symtab, symtab->size * sizeof(struct symtab));
-
-        printf("0x%01lx, %s, 0x%04lx\n", st_type_val, symtab[symtab->size-1].symtab_entry->name, offset_val);
     }
     return symtab;
 }
@@ -225,7 +220,8 @@ void dealloc(e_header_t* e_header, sections_t* code_sections, symtab_t* symtab) 
    }
    free(code_sections);
    fflush(stdout);
-   for (int i = 0; i < symtab->size; i++) {
+   for (int i = 0; i < symtab->size-1; i++) {
+        free(symtab[i].symtab_entry->name);
         free(symtab[i].symtab_entry);
    }
    free(symtab);
