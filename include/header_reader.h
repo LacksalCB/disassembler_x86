@@ -40,6 +40,7 @@ typedef struct section_header_entry {
     char* name;
     uint64_t offset;
     uint64_t size;
+    uint64_t shstrtab_idx;
 }sh_entry_t;
 
 typedef struct sections {
@@ -55,7 +56,8 @@ typedef struct sections {
 // Should move to hashtable for efficiency but alas
 typedef struct symtab_entry {
     uint64_t offset;
-    unsigned char* name;
+    char* name;
+    uint64_t section;
 }symtab_entry_t;
 
 typedef struct symtab {

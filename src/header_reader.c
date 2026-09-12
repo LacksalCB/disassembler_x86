@@ -1,5 +1,6 @@
 #include "../include/header_reader.h"
 
+// This function's existence is pointless and a epistemic of poor design practices.
 uint64_t uctoull(unsigned char* str, size_t len) {
     uint64_t result = 0;
         for (size_t i = 0; i < len; i++) {
@@ -11,6 +12,7 @@ uint64_t uctoull(unsigned char* str, size_t len) {
 e_header_t* read_elf_headers(unsigned char* buff) {
         unsigned char header_ident[16];
         memcpy(header_ident, buff, sizeof(header_ident));
+        // x86_64 ELF statically linked
         unsigned char x86_64_header[16] = {0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
         if (memcmp(header_ident, x86_64_header, 16) != 0) {
@@ -50,11 +52,10 @@ sh_entry_t* get_section(unsigned char* buff, e_header_t* e_header, const char* s
         char* name = (char*) buff+e_header->strtab_offset_val+sh_name_offset_val+1;
    
         if (strcmp(name, sh_name) == 0) {
-            section->name = malloc(strlen(name)+1);
-            memcpy(section->name, name, strlen(name));
-            section->name[strlen(name)] = 0;
+            section->name = name;
             section->offset = uctoull(buff+e_header->e_shoff_val+(sh_entry_idx*0x40)+0x18, sizeof(uint64_t));
             section->size = uctoull(buff+e_header->e_shoff_val+(sh_entry_idx*0x40)+0x20, sizeof(uint64_t));
+            section->shstrtab_idx = sh_entry_idx;
             break;
         }
         sh_entry_idx += 1;
@@ -94,39 +95,27 @@ sections_t* read_sh_headers(e_header_t* e_header, unsigned char* buff) {
     return code_sections;
 }
 
-// Read offsets of every symbol
-// When printing, if current line = any offset of the symbols (plus pruning for stuff outside of text etc) insert symbol marker line
-symtab_t* read_symtab(unsigned char* buff, sections_t* code_sections) {  
-    symtab_t* symtab = malloc(1 * sizeof(struct symtab));
-    symtab->size = 1;
-    for (uint64_t i = 0x18; i < code_sections[6].sh_entry->size; i += 0x18) {
-        unsigned char st_type[4];
-        memcpy(st_type, buff+code_sections[6].sh_entry->offset+i+0x4, sizeof(st_type));
-        uint64_t st_type_val = (uctoull(st_type, sizeof(st_type))&0xf); 
-
-        if (st_type_val != 2) {
-            continue;
-        }
-
-        unsigned char strtab_entry[4];
-        memcpy(strtab_entry, buff+code_sections[6].sh_entry->offset+i, sizeof(strtab_entry));
-        uint64_t strtab_entry_val = uctoull(strtab_entry, sizeof(strtab_entry));
-        
-        char* name = (char*) buff+code_sections[7].sh_entry->offset+strtab_entry_val;
+symtab_t* read_symtab(unsigned char* buff, sections_t* code_sections) { 
+    symtab_t* symtab = malloc((code_sections[6].sh_entry->size/0x18) * sizeof(struct symtab));
+    symtab->size = code_sections[6].sh_entry->size/0x18;
+    for (uint64_t i = 0; i < code_sections[6].sh_entry->size/0x18; i += 1) {
+        symtab_entry_t* entry = malloc(1 * sizeof(struct symtab_entry));
 
         unsigned char offset[4];
-        memcpy(offset, buff+code_sections[6].sh_entry->offset+i+0x8, sizeof(offset));
-        uint64_t offset_val = uctoull(offset, sizeof(offset)); 
+        memcpy(offset, buff+code_sections[6].sh_entry->offset+i*0x18+0x8, sizeof(offset));
+        entry->offset = uctoull(offset, sizeof(offset)); 
 
-        symtab_entry_t* entry = malloc(1 * sizeof(struct symtab_entry));
-        entry->offset = offset_val;
-        entry->name = malloc(strlen(name)+1);
-        memcpy(entry->name, name, strlen(name));
-        entry->name[strlen(name)] = 0;
+        unsigned char strtab_entry[4];
+        memcpy(strtab_entry, buff+code_sections[6].sh_entry->offset+i*0x18, sizeof(strtab_entry));
+        uint64_t strtab_entry_val = uctoull(strtab_entry, sizeof(strtab_entry));        
+        entry->name = (char*) buff+code_sections[7].sh_entry->offset+strtab_entry_val;
 
-        symtab[symtab->size-1].symtab_entry = entry; 
-        symtab->size++;
-        symtab = realloc(symtab, symtab->size * sizeof(struct symtab));
+        unsigned char st_type[2];
+        memcpy(st_type, buff+code_sections[6].sh_entry->offset+i*0x18+0x6, sizeof(st_type));
+        uint64_t st_type_val = (uctoull(st_type, sizeof(st_type)));
+        entry->section = st_type_val;
+            
+        symtab[i].symtab_entry = entry; 
     }
     return symtab;
 }

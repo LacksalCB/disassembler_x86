@@ -2,6 +2,9 @@
 dis
 test
 
+# objdump files
+*.out
+
 # Build files
 *.o
 

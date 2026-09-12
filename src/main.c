@@ -31,12 +31,10 @@ void print_bytes(unsigned char* buff, size_t src, size_t dest) {
 void dealloc(header_t* headers, unsigned char* buff) {
    free(headers->e_header);
    for (int i = 0; i < headers->sections->size; i++) {
-        free(headers->sections[i].sh_entry->name);
         free(headers->sections[i].sh_entry);
    }
    free(headers->sections);
-   for (int i = 0; i < headers->symtab->size-1; i++) {
-        free(headers->symtab[i].symtab_entry->name);
+   for (int i = 0; i < headers->symtab->size; i++) {
         free(headers->symtab[i].symtab_entry);
    }
    free(headers->symtab);
@@ -49,16 +47,11 @@ void dump(unsigned char* buff, sections_t* code_sections) {
     for (int i = 0; i < code_sections->size; i++) {
         if (code_sections[i].type == CODE) {
             printf("Dissassembly of section: .%s\n\n", code_sections[i].sh_entry->name);
-            printf("%016lx <_%s>:\n", code_sections[i].sh_entry->offset, code_sections[i].sh_entry->name); // This is wrong, this should be function names
+            printf("%016lx <fn: %s>:\n", code_sections[i].sh_entry->offset, code_sections[i].sh_entry->name); // This is wrong, this should be function names
             print_bytes(buff, code_sections[i].sh_entry->offset, code_sections[i].sh_entry->offset+code_sections[i].sh_entry->size);
             puts("\n");
         } 
     }
-}
-
-
-void disas(unsigned char* buff) {
-    
 }
 
 int main(int argc, char** argv) {
@@ -73,8 +66,7 @@ int main(int argc, char** argv) {
     fclose(bin);
 
     header_t* headers = read_headers(buff);
-    dump(buff, headers->sections);
-    disas(buff);
+    disassemble(buff, headers);
 
     puts("");
 
