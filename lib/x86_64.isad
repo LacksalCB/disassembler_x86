@@ -1,0 +1,38 @@
+[Header]
+opcode: mnemonic $flags
+
+flags:
+F_NONE
+$F_MODRM
+$F_IMM8
+$F_IMM32
+$F_GROUP
+
+F_MODRM:
+0=$Indirect
+1=DISP_1B
+2=DISP_4B
+3=$REG_MODE
+
+INDIRECT:
+
+
+REG_MODE:
+eax
+ecx
+edx
+ebx
+esp
+ebp
+esi
+edi
+
+RM:
+
+
+[Entries] #standard intel/AMD notation
+00: add Eb,Gb
+01: add Ev,Gv
+
+
+
