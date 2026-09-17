@@ -116,20 +116,14 @@ void disassemble(unsigned char* buff, header_t* header) {
                         for (int k = 3; k < 7; k++) {
                             instr[k] = buff[j+k];
                         }
-                        unsigned char tmp = 0;
-                        tmp = val_bytes[0];
-                        val_bytes[0] = val_bytes[3];
-                        val_bytes[3] = tmp;
-                        tmp = val_bytes[1];
-                        val_bytes[1] = val_bytes[2];
-                        val_bytes[2] = 1;
 
                         uint64_t imm = uctoull(val_bytes, sizeof(val_bytes));
                         printf("    %lx:    ", j);
                         for (int k = 0; k < 7; k++) {
                             printf("%02x ", instr[k]);
                         }
-                        printf("\t%s\t$0x%04lx,%01x(%s)", isa_table[instr[0]].mnemonic, imm, disp, reg[rm]);
+                        printf("\t%s\t$0x%lx,%s0x%02x(%s)\n", isa_table[instr[0]].mnemonic, imm, (disp < 0) ? "-" : "", abs(disp), reg[rm]);
+                        j += 6;
                         break;
                     case 0b10:
                         break;
