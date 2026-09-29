@@ -12,7 +12,7 @@ uint64_t uctoull(unsigned char* str, size_t len) {
 e_header_t* read_elf_headers(unsigned char* buff) {
         unsigned char header_ident[16];
         memcpy(header_ident, buff, sizeof(header_ident));
-        // x86_64 ELF statically linked
+        // x86_64 ELF dynamically linked
         unsigned char x86_64_header[16] = {0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
         if (memcmp(header_ident, x86_64_header, 16) != 0) {

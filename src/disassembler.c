@@ -18,19 +18,23 @@ typedef struct {
     uint8_t flags;
 }isa_entry_t;
 
-const char mod_table[4][16] = {"INDIRECT", "DISP_1B", "DISP_4B", "REG_MODE"};
-
 const char reg[8][6] = {"%eax", "%ecx", "%edx", "%ebx", "%esp", "%ebp", "%esi", "%edi"};
 
 const isa_entry_t isa_table[256] = {
     [0x01] = {"add", F_MODRM},
     [0x55] = {"push\t%rbp", F_NONE},
     [0x48] = {"", F_GROUP},
-    [0x89] = {"mov", F_MODRM}, 
+    [0x89] = {"mov", F_MODRM},
+    [0x8b] = {"mov", F_MODRM}, // REG with offset
     [0x8d] = {"lea", F_MODRM},
     [0xc3] = {"ret", F_NONE},
     [0xc7] = {"movl", F_IMM32|F_MODRM}
 };
+
+// Lots of repeated code here, so parse operands after decoding opcode
+void parse_ops() {
+
+}
 
 void disassemble(unsigned char* buff, header_t* header) {
     int offsets[256];
@@ -95,11 +99,6 @@ void disassemble(unsigned char* buff, header_t* header) {
                 }
             } 
 
-            // c7 45 f4 ef be 00 00
-            // c7 -> mov with 32 bit imm
-            // 45 -> 0b01 000101
-            // f4 -> 0b11 110 100
-            // Multi byte instructions
             if (isa_table[opcode].flags == (F_IMM32|F_MODRM)) {
                 instr[0] = buff[j];
                 instr[1] = buff[j+1];

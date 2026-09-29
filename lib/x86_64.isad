@@ -1,6 +1,8 @@
 [Header]
 opcode: mnemonic $flags
 
+opcode_length:0
+
 flags:
 F_NONE
 $F_MODRM
@@ -18,6 +20,22 @@ INDIRECT:
 
 
 REG_MODE:
+al
+cl
+dl
+bl
+ah
+ch
+dh
+bh
+ax
+cx
+dx
+bx
+sp
+bp
+si
+di
 eax
 ecx
 edx
@@ -26,6 +44,14 @@ esp
 ebp
 esi
 edi
+rax
+rcx
+rdx
+rbx
+rsp
+rbp
+rsi
+rdi
 
 RM:
 

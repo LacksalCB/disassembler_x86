@@ -1,0 +1,114 @@
+HEADER:
+$PREFIX opcode: "[mnemonic]" $FLAGS
+
+opcode_length: 
+ - 0; variable length
+ - 1; semi-variable (dictated by opcode/prefix like RISC-V)
+ - N; N being 16/32/64 for fixed length encoding
+
+# NONE, group are semi generic, and all ISAs have some immediate handling
+FLAGS:
+F_NONE      # No flags, simple 1 byte opcode with 0 operands 
+$F_MODRM    # Has x86 MOD_RM operand encoding
+$F_SIB      # x86 Specific SIB byte
+# For Immediates (F_IMMN), just read the next N bytes and use that value
+F_IMM8     # 8 bit immediate value
+F_IMM32    # 32 bit immediate value
+$F_GROUP    # Grouped instructions via /r bit of MOD_RM
+
+# x86-specific
+F_MODRM:
+0=INDIRECT $RM
+1=DISP_1B $RM
+2=DISP_4B $RM
+3=$REG_MODE
+
+# INDIRECT: Based on R/M value, can be (memory access) or:
+# R/M=100: SIB with 0 displacement
+# R/M=101: Displacement only addressing mode (no base reg in 32)
+
+RM:
+000:$REG_MODE[0]
+001:$REG_MODE[1]
+010:$REG_MODE[2]
+011:$REG_MODE[3]
+100:$SIB
+101:$REG_MODE[5]
+110:$REG_MODE[6]
+111:$REG_MODE[7]
+
+RM_64:
+# 64 bit 4 bit long extension
+
+# x86-specific
+F_SIB: $S $I $B
+
+I:
+000=eax
+001=ecx
+010=edx
+011=ebx
+100=[No index register]
+101=ebp
+110=esi
+111=edi
+
+S:
+00=$I*1
+01=$I*2
+10=$I*4
+11=$I*8
+
+B:
+000=eax
+001=ecx
+010=edx
+011=ebx
+100=esp
+101=$MOD==00?disp_only:MOD==01||MOD==10?EBP #This needs some cleanup, I will address this soon 
+110=esi
+111=edi
+
+B_64:
+#64 bit 4 bit long mode
+
+PREFIX:
+0b0100$REX
+
+REX: $W $R $X $B
+
+W:
+0=opsize in CS.D (assume 32 in our case)
+1=64 bit
+
+R:
+Extension of ModR/M.reg
+
+X:
+Extension of $I in SIB
+
+B:
+#CASE 1: ModR/M mod != 11, R/M -> SIB
+if F_MODRM && mod != 0b11 && R/M == 100:
+    $B=$B_64
+#CASE 2: ModR/M mod != 11, R/M -> Direct Base reg
+if F_MODRM && mod != 0b11 && R/M != 100 && (mod != 0b00 && R/M != 101):
+    $RM=$RM_64
+#CASE 3: ModR/M mod = 11
+if F_MODRM && mod == 0b11:
+    $RM=$RM_64
+CASE 4: no ModR/M 
+if !F_MODRM:
+    $REG_MODE=$B$REG_MODE
+
+# Gotta reformat this to support proper REX formatting
+REG_MODE:
+$REX|$BITS32
+
+$REX:
+# List x86-64 bit registers + r9 etc extensions
+
+$BITS32:
+# List standard x86-32
+
+
