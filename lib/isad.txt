@@ -101,7 +101,6 @@ CASE 4: no ModR/M
 if !F_MODRM:
     $REG_MODE=$B$REG_MODE
 
-# Gotta reformat this to support proper REX formatting
 REG_MODE:
 $REX|$BITS32
 

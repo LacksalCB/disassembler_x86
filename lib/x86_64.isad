@@ -1,64 +1,205 @@
-[Header]
-opcode: mnemonic $flags
+#TODO:
+# Proper prefix/REX handling -> maybe done? fine with stubbing for now
+# Handle variable bit length (only 32/64 atm, not proper 16 bit handling e.g. 0x66 prefix) -> This is just part of prefixes so I'll address this later
+# Multi-byte opcodes -> I think done inasmuch as this is more of a parsing issue
+# F_GROUP -> I may also get rid of this and just add special opcode rules saying to check ModR/M
 
-opcode_length:0
+COUNT=256 # stub for total number of opcodes
 
-flags:
-F_NONE
-$F_MODRM
-$F_IMM8
-$F_IMM32
-$F_GROUP
+HEADER:
+$PREFIX opcode: "[mnemonic]" $FLAGS
 
+PREFIX: # Basically just an array
+# Fine with stubbing this for now as all it really is will be a map of hex nibbles to whatever semantic purpose
+# GROUP1: Repeat/Lock
+# GROUP2: Segment Override
+# GROUP3: Operand-Size Override
+# GROUP4: Address-Size Override
+0b0100$REX # may or may not include names for fun
+# I have no plan of supporting AVX or x87 in this description or project.
+
+opcode_length: 
+ - 0; variable length
+ - 1; semi-variable (dictated by opcode/prefix like RISC-V)
+ - N; N being 16/32/64 for fixed length encoding
+
+# NONE, group are semi generic, and all ISAs have some immediate handling
+FLAGS:
+F_NONE      # No flags, simple 1 byte opcode with 0 operands 
+$F_MODRM    # Has x86 MOD_RM operand encoding
+$F_SIB      # x86 Specific SIB byte
+# For Immediates (F_IMMN), just read the next N bytes and use that value
+F_IMM8     # 8 bit immediate value
+F_IMM32    # 32 bit immediate value
+$F_GROUP    # Grouped instructions via /r bit of MOD_RM
+$F_REX      # 1 bit flag writing out REX prefix presence.  May also wrap as an element in F_PREFIX where, say, index[0] of the prefix arr is REX
+
+# x86-specific
 F_MODRM:
-0=$Indirect
-1=DISP_1B
-2=DISP_4B
-3=$REG_MODE
-
-INDIRECT:
-
-
-REG_MODE:
-al
-cl
-dl
-bl
-ah
-ch
-dh
-bh
-ax
-cx
-dx
-bx
-sp
-bp
-si
-di
-eax
-ecx
-edx
-ebx
-esp
-ebp
-esi
-edi
-rax
-rcx
-rdx
-rbx
-rsp
-rbp
-rsi
-rdi
+00=$RM
+01=DISP_1B $RM
+10=DISP_4B $RM
+11=$REG_MODE
 
 RM:
+000:$REG_MODE[0]
+001:$REG_MODE[1]
+010:$REG_MODE[2]
+011:$REG_MODE[3]
+100:$SIB
+101:$REG_MODE[5]
+110:$REG_MODE[6]
+111:$REG_MODE[7]
+
+# x86-specific
+F_SIB: $SIB_S $SIB_I $SIB_B
+
+SIB_I:
+000=eax
+001=ecx
+010=edx
+011=ebx
+100=[No index register]
+101=ebp
+110=esi
+111=edi
+#Rex Extensions
+$64
+
+SIB_S:
+00=$I*1
+01=$I*2
+10=$I*4
+11=$I*8
+
+SIB_B:
+000=eax
+001=ecx
+010=edx
+011=ebx
+100=esp
+101:
+if $MOD == 0b00:
+    # displacement only mode
+else if $MOD == 0b01 or $MOD == 0b10:
+    ebp
+
+110=esi
+111=edi
+# REX extensions
+$64
+
+REX: $REX_W $REX_R $REX_X $REX_B
+
+REX_W:
+0=opsize in CS.D (assume 32 in our case)
+1=64 bit
+
+# Access r8-r15 as reg field
+REX_R:
+if F_MODRM:
+    $REG=$REX_R$REG
+
+# Accesss r8-r15 SIB base 
+REX_X:
+if F_SIB:
+    if F_SIB.I != 0b100
+        $SIB_I = $REX_X$SIB_I
+
+REX_B:
+#CASE 1: ModR/M mod != 11, R/M -> SIB
+if F_MODRM && mod != 0b11 && R/M == 100:
+    $SIB_B=$REX_B$SIB_B
+#CASE 2: ModR/M mod != 11, R/M -> Direct Base reg
+if F_MODRM && mod != 0b11 && R/M != 100 && !(mod == 0b00 && R/M == 101):
+    $RM=$REX_B$RM
+#CASE 3: ModR/M mod = 11
+if F_MODRM && mod == 0b11:
+    $RM=$REX_B$RM
+CASE 4: no ModR/M 
+if !F_MODRM:
+    $REG_MODE=$REX_B$REG
+
+F_GROUP:
+# Stub, handle this
+
+REG: $8 $16 $32 $64
+
+8: 
+if F_REX && index >= 100:
+    $8=$8_REX[index]
+else:
+    $8=$8_SHORT[index]
 
 
-[Entries]
-00: add Eb,Gb
-01: add Ev,Gv
+8_SHORT:
+# 8 bit low
+000=al
+001=cl
+010=bl
+011=dl
+# 8 bit high
+100=ah
+101=ch
+110=dh
+111=bh
 
+8_REX:
+#000-011 is shared with 8_SHORT
+100=spl
+101=bpl
+110=sil
+111=dil
 
+16:
+# 16 bit general purpose (ish)
+000=ax
+001=cx
+010=dx
+011=bx
+100=sp
+101=bp
+110=si
+111=di
 
+32:
+# 32 bit
+000=eax
+001=ecx
+010=edx
+011=ebx
+100=esp
+101=ebp
+110=esi
+111=edi
+
+64:
+# 64 bit 
+000=rax
+001=rcx
+010=rdx
+011=rbx
+100=rsp
+101=rbp
+110=rsi
+111=rdi
+
+# 64 bit REX Extensions
+1000=r8
+1001=r9
+1010=r10
+1011=r11
+1100=r12
+1101=r13
+1110=r14
+1111=r15
+
+OPCODES: $OPCODES_1BYTE # groups
+
+OPCODES_1BYTE:
+
+# STUB, going to contain all x86-64 opcodes and bit length variants
+#
+# For mutli byte opcodes, this will largely be handled by the parser
+# Just going to have the multi byte opcodes, and just check if we hit a nibble corresponding to the first nibble
+# of a multi-byte opcode.  It's O(1) so who cares
