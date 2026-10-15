@@ -6,6 +6,10 @@ opcode_length:
  - 1; semi-variable (dictated by opcode/prefix like RISC-V)
  - N; N being 16/32/64 for fixed length encoding
 
+# Displacement is going to have to be set somewhere, so this is just a field that we can set
+# per instruction
+DISP
+
 # NONE, group are semi generic, and all ISAs have some immediate handling
 FLAGS:
 F_NONE      # No flags, simple 1 byte opcode with 0 operands 

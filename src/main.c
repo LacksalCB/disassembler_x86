@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "../include/header_reader.h"
+#include "../include/isa_reader.h"
 #include "../include/disassembler.h"
 #include "../include/utils.h"
 
@@ -34,18 +35,13 @@ void dump(unsigned char* buff, sections_t* code_sections) {
 }
 
 int main(int argc, char** argv) {
-    FILE* bin;
-    size_t size = 0;
-    bin = fopen(argv[1], "rb");
-    fseek(bin, 0, SEEK_END);
-    size = ftell(bin);
-    fseek(bin, 0, SEEK_SET);
-    unsigned char* buff = malloc(size);
-    fread(buff, 1, size, bin);
-    fclose(bin);
+    int len = 0;
+    unsigned char* buff = read_file(argv[1], "rb", &len);
+    
+    encode_isa("lib/x86_64.isad");
 
     header_t* headers = read_headers(buff);
-    disassemble(buff, headers);
+    //disassemble(buff, headers);
 
     puts("");
 

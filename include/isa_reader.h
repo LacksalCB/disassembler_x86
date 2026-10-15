@@ -10,4 +10,12 @@ typedef struct instruction {
     char flags[32];                 // For various opcode flags 
 }instr_t;
 
+struct ISA {
+    int count;
+    char opcode_length;
+    instr_t* instructions;
+};
+
+void encode_isa(char* file);
+
 #endif /* ISA_READER_H */

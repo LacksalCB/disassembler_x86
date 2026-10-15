@@ -6,6 +6,7 @@ EXEC = dis
 
 SRC_DIR = src
 BUILD_DIR = build
+LIB_DIR = lib
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
@@ -14,14 +15,18 @@ OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 all: test $(EXEC)
 
-$(EXEC): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $(EXEC) $(LDFLAGS)
+$(SRC_DIR)/opcode_tables.c: $(LIB_DIR)/x86_64.isad $(SRC_DIR)/isa_decoder.awk
+	awk -f $(SRC_DIR)/isa_decoder.awk $(LIB_DIR)/x86_64.isad > $(SRC_DIR)/opcode_tables.c
+
+$(EXEC): $(OBJECTS) $(SRC_DIR)/opcode_tables.c
+	$(CC) $(OBJECTS) $(SRC_DIR)/opcode_tables.c -o $(EXEC) $(LDFLAGS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 run:
-	./dis test
+	./dis test	
+	cat src/opcode_tables.c
 
 test:
 	$(CC) test.c -o test

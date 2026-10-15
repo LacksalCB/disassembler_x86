@@ -21,4 +21,20 @@ void print_bytes(unsigned char* buff, size_t src, size_t dest) {
     puts("");
 }
 
-
+unsigned char* read_file(char* filename, const char* type, int* len) {
+    FILE* bin;
+    size_t size = 0;
+    bin = fopen(filename, type);
+    if (!bin) {
+        puts("OH NO");
+        exit(1);
+    }
+    fseek(bin, 0, SEEK_END);
+    size = ftell(bin);
+    fseek(bin, 0, SEEK_SET);
+    *len = size;
+    unsigned char* buff = malloc(size);
+    fread(buff, 1, size, bin);
+    fclose(bin);
+    return buff;
+}
