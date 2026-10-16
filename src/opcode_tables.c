@@ -11,8 +11,8 @@
 #define F_REX  1<<5
 #define F_REG_OPCODE  1<<6
 
-// F_MODRM:
-char F_MODRM[16] = {$RM, $RM, DISP, $RM, DISP, $REG_MODE, $REG_MODE, 
+// MODRM:
+char MODRM[16] = {$RM, $RM, DISP, $RM, DISP, $REG_MODE, $REG_MODE, 
 // RM:
 char RM[16] = {$REG_MODE[0], $REG_MODE[1], $REG_MODE[2], $REG_MODE[3], $SIB, $REG_MODE[5], $REG_MODE[6], $REG_MODE[7], $REG_MODE[7], $REG_MODE[7], $REG_MODE[7], 
 // SIB_I:
@@ -30,7 +30,7 @@ char REX_X[16] = { $REX_X$SIB_I,  $REX_X$SIB_I,
 // REX_B:
 char REX_B[16] = {$REX_B$SIB_B, $REX_B$RM, $REX_B$RM, $REX_B$REG, $REX_B$REG, $REX_B$REG, $REX_B$REG, 
 // REG_8:
-char REG_8[16] = {$8_REX[index], $8_SHORT[index], $8_SHORT[index], $8_SHORT[index], 
+char REG_8[16] = {$8_REX[index], $8_SHORT[index], $8_SHORT[index], 
 // 8_SHORT:
 char 8_SHORT[16] = {
 // 8_REX:

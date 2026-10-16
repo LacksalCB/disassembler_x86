@@ -5,23 +5,24 @@ $opcode: "[mnemonic]" $FLAGS
 
 FLAGS {
 F_NONE     
-$F_MODRM  
-$F_SIB    
+F_MODRM  
+F_SIB    
 F_IMM8    
 F_IMM32   
-$F_GROUP   
-$F_REX   
-F_REG_OPCODE
+F_GROUP   
+F_REX   
+F_PREFIX
+F_REG_BITS
 }
 
-F_MODRM {
+MOD:4 {
 00=$RM
 01=$RM, DISP=1
 10=$RM, DISP=4
-11=$REG_MODE
+11=$REG
 }
 
-RM {
+RM:8 {
 000=$REG_MODE[0]
 001=$REG_MODE[1]
 010=$REG_MODE[2]
@@ -32,9 +33,9 @@ RM {
 111=$REG_MODE[7]
 }
 
-F_SIB: $SIB_S $SIB_I $SIB_B
+SIB: $SIB_S $SIB_I $SIB_B
 
-SIB_I {
+SIB_I:8 {
 000=eax
 001=ecx
 010=edx
@@ -46,14 +47,14 @@ SIB_I {
 $64
 }
 
-SIB_S {
+SIB_S:4 {
 00=$I*1
 01=$I*2
 10=$I*4
 11=$I*8
 }
 
-SIB_B {
+SIB_B:8 {
 000=eax
 001=ecx
 010=edx
@@ -61,7 +62,7 @@ SIB_B {
 100=esp
 101:
 if $MOD == 0b00:
-else if $MOD == 0b01 or $MOD == 0b10:
+else if $MOD == 0b01 || $MOD == 0b10:
     ebp
 
 110=esi
@@ -72,8 +73,8 @@ $64
 REX: $REX_W $REX_R $REX_X $REX_B
 
 REX_W {
-0=opsize in CS.D (assume 32 in our case)
-1=64 bit
+0=32
+1=64
 }
 
 REX_R {
@@ -94,7 +95,6 @@ if F_MODRM && mod != 0b11 && R/M != 100 && !(mod == 0b00 && R/M == 101):
     $RM=$REX_B$RM
 if F_MODRM && mod == 0b11:
     $RM=$REX_B$RM
-CASE 4: no ModR/M 
 if !F_MODRM:
     $REG_MODE=$REX_B$REG
 }
@@ -108,8 +108,7 @@ else:
     $8=$8_SHORT[index]
 }
 
-
-8_SHORT {
+8_SHORT:8 {
 000=al
 001=cl
 010=bl
@@ -120,14 +119,14 @@ else:
 111=bh
 }
 
-8_REX {
+8_REX:4 {
 100=spl
 101=bpl
 110=sil
 111=dil
 }
 
-REG_16 { 
+REG_16:8 { 
 000=ax
 001=cx
 010=dx
@@ -138,7 +137,7 @@ REG_16 {
 111=di
 }
 
-REG_32 {  
+REG_32:8 {  
 000=eax
 001=ecx
 010=edx
@@ -149,7 +148,7 @@ REG_32 {
 111=edi
 }
 
-REG_64 {
+REG_64:16 {
 000=rax
 001=rcx
 010=rdx
@@ -176,8 +175,8 @@ OPCODES_1BYTE {
 
 48: "" F_PREFIX|F_REX.REX_W
 
-55: "push %rbp" F_NONE
-5d: "pop %rbp" F_NONE
+55: "push" F_REG_BITS
+5d: "pop" F_REG_BITS
 
 83: "addl" F_MODRM
 89: "mov" F_MODRM

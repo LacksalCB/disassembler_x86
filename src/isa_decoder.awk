@@ -1,5 +1,6 @@
 BEGIN {
     current_block = ""
+    field = "^[a-zA-Z_0-9]" 
     FS = "[:=]"
 
 }
@@ -14,7 +15,7 @@ $1 == "OPCODE_LENGTH" {
     next
 }
 
-/^[a-zA-Z_0-9]+\s+*\{/ {
+/^[a-zA-Z_0-9]+:?+[0-9]*+\s+*\{/ {
     print ""
     current_block = $1
     sub(/\s.*/, "", current_block)
@@ -46,7 +47,7 @@ current_block == "FLAGS" {
 }
 
 # Rest of the fields should be key value pairs of binary number to label
-current_block ~ /^[a-zA-Z_0-9]/ {
+current_block ~ field {
     val = $1
     label = $2
 }

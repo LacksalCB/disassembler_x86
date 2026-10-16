@@ -31,7 +31,10 @@ F_IMM8     # 8 bit immediate value
 F_IMM32    # 32 bit immediate value
 $F_GROUP    # Grouped instructions via /r bit of MOD_RM
 $F_REX      # 1 bit flag writing out REX prefix presence.  May also wrap as an element in F_PREFIX where, say, index[0] of the prefix arr is REX
+F_REG_BITS  # Specifies that lowest 3 bits are used for indexing into REG fields
 
+# MODRM will basically be handled as a 255 entry array of every Mod/RM configuration.  This is the easiest, simplest way to represent
+# this without encoding logic into the DSL
 # x86-specific
 F_MODRM:
 00=$RM

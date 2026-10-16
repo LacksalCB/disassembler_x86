@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     encode_isa("lib/x86_64.isad");
 
     header_t* headers = read_headers(buff);
-    //disassemble(buff, headers);
+    disassemble(buff, headers);
 
     puts("");
 
