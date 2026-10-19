@@ -1,5 +1,6 @@
 COUNT=256
 OPCODE_LENGTH=0 
+DEFAULT_BIT_WIDTH=32
 
 $opcode: "[mnemonic]" $FLAGS
 
@@ -10,19 +11,73 @@ F_SIB
 F_IMM8    
 F_IMM32   
 F_GROUP   
-F_REX   
+F_REX  
 F_PREFIX
 F_REG_BITS
 }
 
-MOD:4 {
-00=$RM
-01=$RM, DISP=1
-10=$RM, DISP=4
-11=$REG
+OPERANDS:
+
+REG_8_SHORT:8:4 {
+000=al
+001=cl
+010=bl
+011=dl
+100=ah
+101=ch
+110=dh
+111=bh
 }
 
-RM:8 {
+REG_8_REX:8:4 {
+100=spl
+101=bpl
+110=sil
+111=dil
+}
+
+REG_16:8:4 { 
+000=ax
+001=cx
+010=dx
+011=bx
+100=sp
+101=bp
+110=si
+111=di
+}
+
+REG_32:8:4 {  
+000=eax
+001=ecx
+010=edx
+011=ebx
+100=esp
+101=ebp
+110=esi
+111=edi
+}
+
+REG_64:16:4 {
+000=rax
+001=rcx
+010=rdx
+011=rbx
+100=rsp
+101=rbp
+110=rsi
+111=rdi
+1000=r8
+1001=r9
+1010=r10
+1011=r11
+1100=r12
+1101=r13
+1110=r14
+1111=r15
+}
+
+#RM:8 {
 000=$REG_MODE[0]
 001=$REG_MODE[1]
 010=$REG_MODE[2]
@@ -33,9 +88,18 @@ RM:8 {
 111=$REG_MODE[7]
 }
 
-SIB: $SIB_S $SIB_I $SIB_B
 
-SIB_I:8 {
+#MOD:4:8 {
+00=$RM
+01=$RM
+10=$RM
+11=$REG
+}
+
+
+#SIB: $SIB_S $SIB_I $SIB_B
+
+#SIB_I:8:4 {
 000=eax
 001=ecx
 010=edx
@@ -44,17 +108,19 @@ SIB_I:8 {
 101=ebp
 110=esi
 111=edi
-$64
+REG_64
 }
 
-SIB_S:4 {
+}
+
+#SIB_S:4:8 {
 00=$I*1
 01=$I*2
 10=$I*4
 11=$I*8
 }
 
-SIB_B:8 {
+#SIB_B:8:4 {
 000=eax
 001=ecx
 010=edx
@@ -67,28 +133,28 @@ else if $MOD == 0b01 || $MOD == 0b10:
 
 110=esi
 111=edi
-$64
+REG_64
 }
 
-REX: $REX_W $REX_R $REX_X $REX_B
+#REX: $REX_W $REX_R $REX_X $REX_B
 
-REX_W {
+#REX_W:2:1 {
 0=32
 1=64
 }
 
-REX_R {
+#REX_R {
 if F_MODRM:
     $REG=$REX_R$REG
 }
 
-REX_X {
+#REX_X {
 if F_SIB:
     if F_SIB.I != 0b100
         $SIB_I = $REX_X$SIB_I
 }
 
-REX_B {
+#REX_B {
 if F_MODRM && mod != 0b11 && R/M == 100:
     $SIB_B=$REX_B$SIB_B
 if F_MODRM && mod != 0b11 && R/M != 100 && !(mod == 0b00 && R/M == 101):
@@ -99,92 +165,21 @@ if !F_MODRM:
     $REG_MODE=$REX_B$REG
 }
 
-REG: $REG_8 $REG_16 $REG_32 $REG_64
+OPCODES:256 {
+01: "add",F_MODRM
 
-REG_8 { 
-if F_REX && index >= 100:
-    $8=$8_REX[index]
-else:
-    $8=$8_SHORT[index]
-}
+48: NULL,F_PREFIX|F_REX
 
-8_SHORT:8 {
-000=al
-001=cl
-010=bl
-011=dl
-100=ah
-101=ch
-110=dh
-111=bh
-}
+55: "push %rbp",F_NONE
+5d: "pop %rbp",F_NONE
 
-8_REX:4 {
-100=spl
-101=bpl
-110=sil
-111=dil
-}
+83: "addl",F_MODRM
+89: "mov",F_MODRM
+8b: "mov",F_MODRM
 
-REG_16:8 { 
-000=ax
-001=cx
-010=dx
-011=bx
-100=sp
-101=bp
-110=si
-111=di
-}
+b8: "mov",F_IMM32|F_REG_BITS 
 
-REG_32:8 {  
-000=eax
-001=ecx
-010=edx
-011=ebx
-100=esp
-101=ebp
-110=esi
-111=edi
-}
-
-REG_64:16 {
-000=rax
-001=rcx
-010=rdx
-011=rbx
-100=rsp
-101=rbp
-110=rsi
-111=rdi
-
-1000=r8
-1001=r9
-1010=r10
-1011=r11
-1100=r12
-1101=r13
-1110=r14
-1111=r15
-}
-
-OPCODES: $OPCODES_1BYTE 
-
-OPCODES_1BYTE {
-01: "add" F_MODRM
-
-48: "" F_PREFIX|F_REX.REX_W
-
-55: "push" F_REG_BITS
-5d: "pop" F_REG_BITS
-
-83: "addl" F_MODRM
-89: "mov" F_MODRM
-8b: "mov" F_MODRM
-
-b8: "mov" F_IMM32|F_REG_BITS 
-
-c3: "ret" F_NONE
-c7: "movl" F_MODRM
+c3: "ret",F_NONE
+c7: "movl",F_MODRM
 }
 

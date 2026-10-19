@@ -36,6 +36,8 @@ F_REG_BITS  # Specifies that lowest 3 bits are used for indexing into REG fields
 # MODRM will basically be handled as a 255 entry array of every Mod/RM configuration.  This is the easiest, simplest way to represent
 # this without encoding logic into the DSL
 # x86-specific
+#
+# Also, disp will be handled in the logic somehow
 F_MODRM:
 00=$RM
 01=DISP_1B $RM

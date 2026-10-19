@@ -1,5 +1,13 @@
+#include <string.h>
+
+struct opcodes {
+    const char* mnemonic; 
+    int flags; 
+};
+
 #define COUNT 256  
 #define OPCODE_LENGTH 0  
+#define DEFAULT_BIT_WIDTH 32 
 
 // FLAGS:
 #define F_NONE  0
@@ -9,37 +17,82 @@
 #define F_IMM32  1<<3
 #define F_GROUP  1<<4
 #define F_REX  1<<5
-#define F_REG_OPCODE  1<<6
+#define F_PREFIX  1<<6
+#define F_REG_BITS  1<<7
 
-// MODRM:
-char MODRM[16] = {$RM, $RM, DISP, $RM, DISP, $REG_MODE, $REG_MODE, 
-// RM:
-char RM[16] = {$REG_MODE[0], $REG_MODE[1], $REG_MODE[2], $REG_MODE[3], $SIB, $REG_MODE[5], $REG_MODE[6], $REG_MODE[7], $REG_MODE[7], $REG_MODE[7], $REG_MODE[7], 
-// SIB_I:
-char SIB_I[16] = {
-// SIB_S:
-char SIB_S[16] = {$I*1, $I*2, $I*4, $I*8, $I*8, 
-// SIB_B:
-char SIB_B[16] = {
-// REX_W:
-char REX_W[16] = {
-// REX_R:
-char REX_R[16] = {$REX_R$REG, $REX_R$REG, 
-// REX_X:
-char REX_X[16] = { $REX_X$SIB_I,  $REX_X$SIB_I, 
-// REX_B:
-char REX_B[16] = {$REX_B$SIB_B, $REX_B$RM, $REX_B$RM, $REX_B$REG, $REX_B$REG, $REX_B$REG, $REX_B$REG, 
-// REG_8:
-char REG_8[16] = {$8_REX[index], $8_SHORT[index], $8_SHORT[index], 
-// 8_SHORT:
-char 8_SHORT[16] = {
-// 8_REX:
-char 8_REX[16] = {
+// OPERANDS:
+void init_operand_tables(void) {
+
+// REG_8_SHORT:
+    char reg_8_short[8][4];
+    strcpy(reg_8_short[0b0], "al");
+    strcpy(reg_8_short[0b1], "cl");
+    strcpy(reg_8_short[0b10], "bl");
+    strcpy(reg_8_short[0b11], "dl");
+    strcpy(reg_8_short[0b100], "ah");
+    strcpy(reg_8_short[0b101], "ch");
+    strcpy(reg_8_short[0b110], "dh");
+    strcpy(reg_8_short[0b111], "bh");
+
+// REG_8_REX:
+    char reg_8_rex[8][4];
+    strcpy(reg_8_rex[0b100], "spl");
+    strcpy(reg_8_rex[0b101], "bpl");
+    strcpy(reg_8_rex[0b110], "sil");
+    strcpy(reg_8_rex[0b111], "dil");
+
 // REG_16:
-char REG_16[16] = {
+    char reg_16[8][4];
+    strcpy(reg_16[0b0], "ax");
+    strcpy(reg_16[0b1], "cx");
+    strcpy(reg_16[0b10], "dx");
+    strcpy(reg_16[0b11], "bx");
+    strcpy(reg_16[0b100], "sp");
+    strcpy(reg_16[0b101], "bp");
+    strcpy(reg_16[0b110], "si");
+    strcpy(reg_16[0b111], "di");
+
 // REG_32:
-char REG_32[16] = {
+    char reg_32[8][4];
+    strcpy(reg_32[0b0], "eax");
+    strcpy(reg_32[0b1], "ecx");
+    strcpy(reg_32[0b10], "edx");
+    strcpy(reg_32[0b11], "ebx");
+    strcpy(reg_32[0b100], "esp");
+    strcpy(reg_32[0b101], "ebp");
+    strcpy(reg_32[0b110], "esi");
+    strcpy(reg_32[0b111], "edi");
+
 // REG_64:
-char REG_64[16] = {
-// OPCODES_1BYTE:
-char OPCODES_1BYTE[16] = {
+    char reg_64[16][4];
+    strcpy(reg_64[0b0], "rax");
+    strcpy(reg_64[0b1], "rcx");
+    strcpy(reg_64[0b10], "rdx");
+    strcpy(reg_64[0b11], "rbx");
+    strcpy(reg_64[0b100], "rsp");
+    strcpy(reg_64[0b101], "rbp");
+    strcpy(reg_64[0b110], "rsi");
+    strcpy(reg_64[0b111], "rdi");
+    strcpy(reg_64[0b1000], "r8");
+    strcpy(reg_64[0b1001], "r9");
+    strcpy(reg_64[0b1010], "r10");
+    strcpy(reg_64[0b1011], "r11");
+    strcpy(reg_64[0b1100], "r12");
+    strcpy(reg_64[0b1101], "r13");
+    strcpy(reg_64[0b1110], "r14");
+    strcpy(reg_64[0b1111], "r15");
+
+// OPCODES:
+}
+const struct opcodes opcode_table[256] = {
+    [0x01] = { .mnemonic =  "add", .flags = F_MODRM},
+    [0x48] = { .mnemonic =  NULL, .flags = F_PREFIX|F_REX},
+    [0x55] = { .mnemonic =  "push %rbp", .flags = F_NONE},
+    [0x5d] = { .mnemonic =  "pop %rbp", .flags = F_NONE},
+    [0x83] = { .mnemonic =  "addl", .flags = F_MODRM},
+    [0x89] = { .mnemonic =  "mov", .flags = F_MODRM},
+    [0x8b] = { .mnemonic =  "mov", .flags = F_MODRM},
+    [0xb8] = { .mnemonic =  "mov", .flags = F_IMM32|F_REG_BITS },
+    [0xc3] = { .mnemonic =  "ret", .flags = F_NONE},
+    [0xc7] = { .mnemonic =  "movl", .flags = F_MODRM},
+};

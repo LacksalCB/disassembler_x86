@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #include "../include/header_reader.h"
-#include "../include/isa_reader.h"
 #include "../include/disassembler.h"
 #include "../include/utils.h"
 
@@ -34,11 +33,9 @@ void dump(unsigned char* buff, sections_t* code_sections) {
     }
 }
 
-int main(int argc, char** argv) {
-    int len = 0;
+int main(int argc, char** argv) { 
+    size_t len = 0;
     unsigned char* buff = read_file(argv[1], "rb", &len);
-    
-    encode_isa("lib/x86_64.isad");
 
     header_t* headers = read_headers(buff);
     disassemble(buff, headers);

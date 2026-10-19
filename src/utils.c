@@ -21,7 +21,7 @@ void print_bytes(unsigned char* buff, size_t src, size_t dest) {
     puts("");
 }
 
-unsigned char* read_file(char* filename, const char* type, int* len) {
+unsigned char* read_file(char* filename, const char* type, size_t* len) {
     FILE* bin;
     size_t size = 0;
     bin = fopen(filename, type);

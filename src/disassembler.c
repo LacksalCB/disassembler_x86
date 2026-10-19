@@ -1,42 +1,43 @@
 #include "../include/disassembler.h"
 #include "../include/utils.h"
+#include "../include/opcode_table.h"
 
 /* Rough Design:
  * Stolen from objdump, linear sweep through each symbol is probably the best balance of speed and complexity
  * Can run a clean-up pass to ensure all code is reached and that nothing major is missed
  */
-typedef enum {
-    F_NONE = 0,
-    F_MODRM = 1 << 0,
-    F_IMM8 = 1 << 1,
-    F_IMM32 = 1 << 2,
-    F_GROUP = 1 << 3
-}flags;
 
-typedef struct {
-    char* mnemonic;
-    uint8_t flags;
-}isa_entry_t;
+// x86_specific mod rm operand encoding rules
+void parse_modrm(unsigned char* buff, size_t* offset, modrm_info* info) {
+    char modrm = buff[*offset++];
+    // Extract Mod RM REG fields from ModR/M bits
+    info->mod = (modrm >> 6) & 0b11;
+    info->reg = (modrm >> 3) & 0b111;
+    info->rm = modrm & 0x7;
+     
+    // Check SIB
+    info->has_sib = (info->mod & 0b00 && info->rm & 0b100);
+    if (info->has_sib) {
+        info->sib = buff[*offset++];
+    }
 
-const char reg[8][6] = {"%eax", "%ecx", "%edx", "%ebx", "%esp", "%ebp", "%esi", "%edi"};
-
-const isa_entry_t isa_table[256] = {
-    [0x01] = {"add", F_MODRM},
-    [0x55] = {"push\t%rbp", F_NONE},
-    [0x48] = {"", F_GROUP},
-    [0x89] = {"mov", F_MODRM},
-    [0x8b] = {"mov", F_MODRM}, // REG with offset
-    [0x8d] = {"lea", F_MODRM},
-    [0xc3] = {"ret", F_NONE},
-    [0xc7] = {"movl", F_IMM32|F_MODRM}
-};
-
-// Lots of repeated code here, so parse operands after decoding opcode
-void parse_ops() {
-
+    if (info->mod == 0b00 && info->rm == 0b101) {
+        info->displacement =  (uint32_t)(buff[*offset++] & 0xffffffff);
+        *offset += 4;
+    }
+    if (info->mod == 0b01) {
+        info ->displacement = (uint32_t)(buff[*offset++] & 0xff);
+        *offset += 1;
+    }
+    if (info->mod == 0b10) {
+        info ->displacement = (uint32_t)(buff[*offset++] & 0xffffffff);
+        *offset += 4;
+    }
 }
 
+
 void disassemble(unsigned char* buff, header_t* header) {
+    init_operand_tables();
     int offsets[256];
     int idx = 0;
     for (int i = 0; i < header->symtab->size; i++) {
@@ -48,99 +49,22 @@ void disassemble(unsigned char* buff, header_t* header) {
         }
     }
 
-    for (int i = 0; i < idx; i++) {
-        uint64_t j = header->symtab[offsets[i]].symtab_entry->offset;
-        printf("\n%016lx: <%s>\n", j, header->symtab[offsets[i]].symtab_entry->name);
-        while (buff[j] != 0x00) {
+    //for (int i = 0; i < idx; i++) {
+        uint64_t j = header->symtab[30].symtab_entry->offset;
+        printf("\n%016lx: <%s>\n", j, header->symtab[30].symtab_entry->name);   
+
+        while (buff[j] != 0xc3) {
             unsigned char opcode = buff[j];
             
-            // Ret kinda has to be handled separately just to end linear search through symbol
-            if (opcode == 0xc3) { // ret                 
-                printf("%01x\t, %s", opcode, isa_table[opcode].mnemonic);
-                break;
+            if (opcode_table[opcode].flags & F_MODRM) {
+                puts("MODRM");
+                modrm_info* info = malloc(1 * sizeof(struct MODRM_STRUCT));
+                parse_modrm(buff, &j, info);
             }
-            
-            // Single byte instructions
-            if (isa_table[opcode].flags == F_NONE) { 
-                printf("    %lx:    %x\t\t%s\n", j, opcode, isa_table[opcode].mnemonic);
-                j++;
-                continue;
-            }
-
-            unsigned char instr[8] = {0, 0, 0, 0, 0, 0, 0};
-
-            // For Prefixes
-            if (isa_table[opcode].flags == F_GROUP) {
-                instr[0] = buff[j];
-                if (isa_table[buff[j+1]].flags == F_MODRM) {
-                    instr[1] = buff[j+1];
-                    instr[2] = buff[j+2];
-                    unsigned char mod = (instr[2] & 0b11000000) >> 6;
-                    switch(mod) {
-                        case 0b00:
-                            break;
-                        case 0b01:
-                            break;
-                        case 0b10:
-                            break;
-                        case 0b11:    
-                            unsigned char s = (instr[2] & 0b00111000) >> 3;
-                            unsigned char d = instr[2] & 0b00000111;
-                            printf("    %lx:    ", j);
-                            for (int k = 0; k < 3; k++) {
-                                printf("%x ", instr[k]);
-                            } 
-                            printf("\t%s\t%s,%s\n", isa_table[instr[1]].mnemonic, reg[s], reg[d]);
-                            j += 2;
-                            break;
-                    }
-                    j++;
-                    continue;
-                }
-            } 
-
-            if (isa_table[opcode].flags == (F_IMM32|F_MODRM)) {
-                instr[0] = buff[j];
-                instr[1] = buff[j+1];
-                unsigned char mod = (instr[1] & 0b11000000) >> 6;
-                switch(mod) {
-                    case 0b00:
-                        break;
-                    case 0b01:
-                        unsigned char rm = instr[1] & 0b00000111;
-                        char disp = buff[j+2];
-                        instr[2] = disp;
-                        unsigned char val_bytes[4];
-                        memcpy(val_bytes, buff+j+3, sizeof(val_bytes));
-                        for (int k = 3; k < 7; k++) {
-                            instr[k] = buff[j+k];
-                        }
-
-                        uint64_t imm = uctoull(val_bytes, sizeof(val_bytes));
-                        printf("    %lx:    ", j);
-                        for (int k = 0; k < 7; k++) {
-                            printf("%02x ", instr[k]);
-                        }
-                        printf("\t%s\t$0x%lx,%s0x%02x(%s)\n", isa_table[instr[0]].mnemonic, imm, (disp < 0) ? "-" : "", abs(disp), reg[rm]);
-                        j += 6;
-                        break;
-                    case 0b10:
-                        break;
-                    case 0b11:    
-                        unsigned char s = (instr[2] & 0b00111000) >> 3;
-                        unsigned char d = instr[2] & 0b00000111;
-                        printf("    %lx:    ", j);
-                        for (int k = 0; k < 3; k++) {
-                            printf("%x ", instr[k]);
-                        } 
-                        printf("\t%s\t%s,%s\n", isa_table[instr[1]].mnemonic, reg[s], reg[d]);
-                        j += 2;
-                        break;
-                }
-                j++;
-                continue;              
-            }
+            printf("    %lx:    %x\t\t%s\n", j, opcode, opcode_table[opcode].mnemonic);
             j++;
-        }    
-    }
+           
+        }
+    //}
+    
 }

@@ -8,25 +8,29 @@ SRC_DIR = src
 BUILD_DIR = build
 LIB_DIR = lib
 
-SOURCES = $(wildcard $(SRC_DIR)/*.c)
+C_SOURCES = $(filter-out $(SRC_DIR)/opcode_tables.c, $(wildcard $(SRC_DIR)/*.c)) 
+SOURCES = $(C_SOURCES) $(SRC_DIR)/opcode_tables.c
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
-.PHONY: all clean
+.PHONY: all clean awk run test
 
-all: test $(EXEC)
+all: $(SRC_DIR)/opcode_tables.c $(EXEC)
 
 $(SRC_DIR)/opcode_tables.c: $(LIB_DIR)/x86_64.isad $(SRC_DIR)/isa_decoder.awk
 	awk -f $(SRC_DIR)/isa_decoder.awk $(LIB_DIR)/x86_64.isad > $(SRC_DIR)/opcode_tables.c
 
-$(EXEC): $(OBJECTS) $(SRC_DIR)/opcode_tables.c
-	$(CC) $(OBJECTS) $(SRC_DIR)/opcode_tables.c -o $(EXEC) $(LDFLAGS)
+$(EXEC): $(OBJECTS) | $(BUILD_DIR)
+	$(CC) $(OBJECTS) -o $(EXEC) $(LDFLAGS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) -o $@ -c $< $(CFLAGS)
+
+awk:
+	awk -f $(SRC_DIR)/isa_decoder.awk $(LIB_DIR)/x86_64.isad > $(SRC_DIR)/opcode_tables.c
+	cat $(SRC_DIR)/opcode_tables.c
 
 run:
 	./dis test	
-	cat src/opcode_tables.c
 
 test:
 	$(CC) test.c -o test
