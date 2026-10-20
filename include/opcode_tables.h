@@ -1,11 +1,10 @@
-#ifndef OPCODE_TABLE_H
-#define OPCODE_TABLE_H
+#ifndef OPCODE_TABLES_H
+#define OPCODE_TABLES_H
+#include <string.h>
 
-// Should make this awk-generated
-
-struct opcodes {
-    const char* mnemonic;
-    int flags;
+struct opcode {
+    const char* mnemonic; 
+    int flags; 
 };
 
 #define COUNT 256  
@@ -23,9 +22,10 @@ struct opcodes {
 #define F_PREFIX  1<<6
 #define F_REG_BITS  1<<7
 
-extern const struct opcodes opcode_table[256];
-
+// OPERANDS:
 void init_operand_tables(void);
 
+//OPCODES:
+extern struct opcode opcode_table[256];
 
-#endif /* OPCODE_TABLE */
+#endif

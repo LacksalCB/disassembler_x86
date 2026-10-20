@@ -1,11 +1,6 @@
 #include "../include/disassembler.h"
 #include "../include/utils.h"
-#include "../include/opcode_table.h"
-
-/* Rough Design:
- * Stolen from objdump, linear sweep through each symbol is probably the best balance of speed and complexity
- * Can run a clean-up pass to ensure all code is reached and that nothing major is missed
- */
+#include "../include/opcode_tables.h"
 
 // x86_specific mod rm operand encoding rules
 void parse_modrm(unsigned char* buff, size_t* offset, modrm_info* info) {
@@ -55,11 +50,15 @@ void disassemble(unsigned char* buff, header_t* header) {
 
         while (buff[j] != 0xc3) {
             unsigned char opcode = buff[j];
-            
+           
+            puts(opcode_table[opcode].mnemonic);
             if (opcode_table[opcode].flags & F_MODRM) {
                 puts("MODRM");
                 modrm_info* info = malloc(1 * sizeof(struct MODRM_STRUCT));
                 parse_modrm(buff, &j, info);
+            }
+            if (opcode_table[opcode].flags & F_PREFIX) {
+                puts("PREFIX");
             }
             printf("    %lx:    %x\t\t%s\n", j, opcode, opcode_table[opcode].mnemonic);
             j++;

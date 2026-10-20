@@ -4,7 +4,9 @@ DEFAULT_BIT_WIDTH=32
 
 $opcode: "[mnemonic]" $FLAGS
 
-FLAGS {
+FLAGS: 
+
+FLAGS = {
 F_NONE     
 F_MODRM  
 F_SIB    
@@ -77,95 +79,9 @@ REG_64:16:4 {
 1111=r15
 }
 
-#RM:8 {
-000=$REG_MODE[0]
-001=$REG_MODE[1]
-010=$REG_MODE[2]
-011=$REG_MODE[3]
-100=$SIB
-101=$REG_MODE[5]
-110=$REG_MODE[6]
-111=$REG_MODE[7]
-}
+OPCODES: 
 
-
-#MOD:4:8 {
-00=$RM
-01=$RM
-10=$RM
-11=$REG
-}
-
-
-#SIB: $SIB_S $SIB_I $SIB_B
-
-#SIB_I:8:4 {
-000=eax
-001=ecx
-010=edx
-011=ebx
-100=[No index register]
-101=ebp
-110=esi
-111=edi
-REG_64
-}
-
-}
-
-#SIB_S:4:8 {
-00=$I*1
-01=$I*2
-10=$I*4
-11=$I*8
-}
-
-#SIB_B:8:4 {
-000=eax
-001=ecx
-010=edx
-011=ebx
-100=esp
-101:
-if $MOD == 0b00:
-else if $MOD == 0b01 || $MOD == 0b10:
-    ebp
-
-110=esi
-111=edi
-REG_64
-}
-
-#REX: $REX_W $REX_R $REX_X $REX_B
-
-#REX_W:2:1 {
-0=32
-1=64
-}
-
-#REX_R {
-if F_MODRM:
-    $REG=$REX_R$REG
-}
-
-#REX_X {
-if F_SIB:
-    if F_SIB.I != 0b100
-        $SIB_I = $REX_X$SIB_I
-}
-
-#REX_B {
-if F_MODRM && mod != 0b11 && R/M == 100:
-    $SIB_B=$REX_B$SIB_B
-if F_MODRM && mod != 0b11 && R/M != 100 && !(mod == 0b00 && R/M == 101):
-    $RM=$REX_B$RM
-if F_MODRM && mod == 0b11:
-    $RM=$REX_B$RM
-if !F_MODRM:
-    $REG_MODE=$REX_B$REG
-}
-
-OPCODES:256 {
+OPCODE_TABLE {
 01: "add",F_MODRM
 
 48: NULL,F_PREFIX|F_REX

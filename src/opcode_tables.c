@@ -1,25 +1,6 @@
 #include <string.h>
-
-struct opcodes {
-    const char* mnemonic; 
-    int flags; 
-};
-
-#define COUNT 256  
-#define OPCODE_LENGTH 0  
-#define DEFAULT_BIT_WIDTH 32 
-
-// FLAGS:
-#define F_NONE  0
-#define F_MODRM  1<<0
-#define F_SIB  1<<1
-#define F_IMM8  1<<2
-#define F_IMM32  1<<3
-#define F_GROUP  1<<4
-#define F_REX  1<<5
-#define F_PREFIX  1<<6
-#define F_REG_BITS  1<<7
-
+#include "../include/opcode_tables.h"
+    struct opcode opcode_table[256];
 // OPERANDS:
 void init_operand_tables(void) {
 
@@ -82,17 +63,25 @@ void init_operand_tables(void) {
     strcpy(reg_64[0b1110], "r14");
     strcpy(reg_64[0b1111], "r15");
 
-// OPCODES:
+// OPCODE_TABLE:
+        opcode_table[0x01].mnemonic =  "add";
+opcode_table[0x01].flags = F_MODRM;
+        opcode_table[0x48].mnemonic =  NULL;
+opcode_table[0x48].flags = F_PREFIX|F_REX;
+        opcode_table[0x55].mnemonic =  "push %rbp";
+opcode_table[0x55].flags = F_NONE;
+        opcode_table[0x5d].mnemonic =  "pop %rbp";
+opcode_table[0x5d].flags = F_NONE;
+        opcode_table[0x83].mnemonic =  "addl";
+opcode_table[0x83].flags = F_MODRM;
+        opcode_table[0x89].mnemonic =  "mov";
+opcode_table[0x89].flags = F_MODRM;
+        opcode_table[0x8b].mnemonic =  "mov";
+opcode_table[0x8b].flags = F_MODRM;
+        opcode_table[0xb8].mnemonic =  "mov";
+opcode_table[0xb8].flags = F_IMM32|F_REG_BITS ;
+        opcode_table[0xc3].mnemonic =  "ret";
+opcode_table[0xc3].flags = F_NONE;
+        opcode_table[0xc7].mnemonic =  "movl";
+opcode_table[0xc7].flags = F_MODRM;
 }
-const struct opcodes opcode_table[256] = {
-    [0x01] = { .mnemonic =  "add", .flags = F_MODRM},
-    [0x48] = { .mnemonic =  NULL, .flags = F_PREFIX|F_REX},
-    [0x55] = { .mnemonic =  "push %rbp", .flags = F_NONE},
-    [0x5d] = { .mnemonic =  "pop %rbp", .flags = F_NONE},
-    [0x83] = { .mnemonic =  "addl", .flags = F_MODRM},
-    [0x89] = { .mnemonic =  "mov", .flags = F_MODRM},
-    [0x8b] = { .mnemonic =  "mov", .flags = F_MODRM},
-    [0xb8] = { .mnemonic =  "mov", .flags = F_IMM32|F_REG_BITS },
-    [0xc3] = { .mnemonic =  "ret", .flags = F_NONE},
-    [0xc7] = { .mnemonic =  "movl", .flags = F_MODRM},
-};
