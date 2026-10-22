@@ -119,7 +119,7 @@ if F_MODRM && mod != 0b11 && R/M != 100 && !(mod == 0b00 && R/M == 101):
 #CASE 3: ModR/M mod = 11
 if F_MODRM && mod == 0b11:
     $RM=$REX_B$RM
-CASE 4: no ModR/M 
+#CASE 4: no ModR/M 
 if !F_MODRM:
     $REG_MODE=$REX_B$REG
 

@@ -17,9 +17,9 @@ OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 all: $(SRC_DIR)/opcode_tables.c $(EXEC)
 
-$(SRC_DIR)/opcode_tables.c: $(LIB_DIR)/x86_64.isad $(SRC_DIR)/awk/isa_parser.awk $(SRC_DIR)/awk/table_generator.awk
+$(SRC_DIR)/opcode_tables.c: $(LIB_DIR)/x86_64.isad $(SRC_DIR)/awk/header_generator.awk $(SRC_DIR)/awk/table_generator.awk
 	awk -f $(SRC_DIR)/awk/table_generator.awk $(LIB_DIR)/x86_64.isad > $(SRC_DIR)/opcode_tables.c
-	awk -f $(SRC_DIR)/awk/isa_parser.awk $(LIB_DIR)/x86_64.isad > $(INCLUDE_DIR)/opcode_tables.h
+	awk -f $(SRC_DIR)/awk/header_generator.awk $(LIB_DIR)/x86_64.isad > $(INCLUDE_DIR)/opcode_tables.h
 
 $(EXEC): $(OBJECTS) | $(BUILD_DIR)
 	$(CC) $(OBJECTS) -o $(EXEC) $(LDFLAGS)
@@ -29,9 +29,9 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 
 awk:
 	awk -f $(SRC_DIR)/awk/table_generator.awk $(LIB_DIR)/x86_64.isad > $(SRC_DIR)/opcode_tables.c
-	awk -f $(SRC_DIR)/awk/isa_parser.awk $(LIB_DIR)/x86_64.isad > $(INCLUDE_DIR)/opcode_tables.h
+	awk -f $(SRC_DIR)/awk/header_generator.awk $(LIB_DIR)/x86_64.isad > $(INCLUDE_DIR)/opcode_tables.h
 	cat $(SRC_DIR)/opcode_tables.c
-	cat $(INCLUDE_DIR)/opcode_tables.h
+	#cat $(INCLUDE_DIR)/opcode_tables.h
 
 run:
 	./dis test	

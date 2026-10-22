@@ -6,13 +6,7 @@ BEGIN {
     print "#define OPCODE_TABLES_H"
 
     print "#include <string.h>"
-
-    printf "\nstruct opcode {\n    const char* mnemonic; \n    int flags; \n};\n\n"
-}
-
-$1 == "COUNT" {
-    printf "#define COUNT %d  \n",$2
-    next
+    print "#include <stdint.h>"
 }
 
 $1 == "OPCODE_LENGTH" {
@@ -33,11 +27,11 @@ $1 == "OPERANDS" {
 
 $1 == "OPCODES" {
     print "\n//OPCODES:"
-    print "extern struct opcode opcode_table[256];"
+    print "extern struct opcode opcode_table_one_byte[256];"
     next
 }
 
-/^F+L+A+G+S+\s*+=+\s*+{+\s*/ {
+/^[a-zA-Z0-9_]*+\s*+=+\s*+{+\s*/ {
     print ""
     current_block = $1
     sub(/\s.*/, "", current_block)
@@ -46,7 +40,7 @@ $1 == "OPCODES" {
     next
 }
 
-/^\}/ {
+/^\}end/ {
     current_block = ""
     next
 }
@@ -61,6 +55,10 @@ current_block == "FLAGS" {
         printf "#define %s  1<<%d\n", flag, n++
     }
     next    
+}
+
+current_block == "STRUCTURES" {
+    print $0
 }
 
 END {

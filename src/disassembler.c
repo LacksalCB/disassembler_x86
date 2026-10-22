@@ -3,67 +3,103 @@
 #include "../include/opcode_tables.h"
 
 // x86_specific mod rm operand encoding rules
-void parse_modrm(unsigned char* buff, size_t* offset, modrm_info* info) {
+void parse_modrm(unsigned char* buff, size_t* offset, Modrm* byte) {
     char modrm = buff[*offset++];
     // Extract Mod RM REG fields from ModR/M bits
-    info->mod = (modrm >> 6) & 0b11;
-    info->reg = (modrm >> 3) & 0b111;
-    info->rm = modrm & 0x7;
+    byte->mod = (modrm >> 6) & 0b11;
+    byte->reg = (modrm >> 3) & 0b111;
+    byte->rm = modrm & 0x7;
      
     // Check SIB
-    info->has_sib = (info->mod & 0b00 && info->rm & 0b100);
-    if (info->has_sib) {
-        info->sib = buff[*offset++];
+    byte->has_sib = (byte->mod & 0b00 && byte->rm & 0b100);
+    if (byte->has_sib) {
+        byte->sib = buff[*offset++];
     }
 
-    if (info->mod == 0b00 && info->rm == 0b101) {
-        info->displacement =  (uint32_t)(buff[*offset++] & 0xffffffff);
+    if (byte->mod == 0b00 && byte->rm == 0b101) {
+        byte->disp =  (uint32_t)(buff[*offset++] & 0xffffffff);
         *offset += 4;
     }
-    if (info->mod == 0b01) {
-        info ->displacement = (uint32_t)(buff[*offset++] & 0xff);
+    if (byte->mod == 0b01) {
+        byte->disp = (uint32_t)(buff[*offset++] & 0xff);
         *offset += 1;
     }
-    if (info->mod == 0b10) {
-        info ->displacement = (uint32_t)(buff[*offset++] & 0xffffffff);
+    if (byte->mod == 0b10) {
+        byte ->disp = (uint32_t)(buff[*offset++] & 0xffffffff);
         *offset += 4;
     }
 }
 
+void parse_rex(unsigned char* buff, size_t* offset, REX* byte) {
+    char rex = buff[*offset++];
+
+    byte->W = (rex >> 3) & 0b1;
+    byte->R = (rex >> 2) & 0b1;
+    byte->X = (rex >> 1) & 0b1;
+    byte->B = rex & 0b1;
+
+    if (byte->W == 1) {
+         
+    }
+}
 
 void disassemble(unsigned char* buff, header_t* header) {
     init_operand_tables();
-    int offsets[256];
-    int idx = 0;
+    //int offsets[256];
+    //int idx = 0;
     for (int i = 0; i < header->symtab->size; i++) {
         if ((header->symtab[i].symtab_entry->section == header->sections[3].sh_entry->shstrtab_idx) ||
                 (header->symtab[i].symtab_entry->section == header->sections[4].sh_entry->shstrtab_idx) ||
                     (header->symtab[i].symtab_entry->section == header->sections[5].sh_entry->shstrtab_idx)) {
-            offsets[idx] = i;
-            idx++;
+            //offsets[idx] = i;
+            //idx++;
         }
     }
 
     //for (int i = 0; i < idx; i++) {
-        uint64_t j = header->symtab[30].symtab_entry->offset;
-        printf("\n%016lx: <%s>\n", j, header->symtab[30].symtab_entry->name);   
+        uint64_t offset = header->symtab[30].symtab_entry->offset;
+        printf("\n%016lx: <%s>\n", offset, header->symtab[30].symtab_entry->name);   
 
-        while (buff[j] != 0xc3) {
-            unsigned char opcode = buff[j];
-           
-            puts(opcode_table[opcode].mnemonic);
+        struct opcode* op = &opcode_table_one_byte[buff[offset]];
+
+        while (op->state != SEL_NONE) {
+            switch (op->state) {
+                case SEL_NEXT_BYTE:
+                    op = &op->next[buff[offset++]];
+                    break;
+                case SEL_MODRM_REG:
+                    op = &op->next[(buff[offset] >> 4) & 0b111];
+                    break;
+                case SEL_PREFIX:
+                    break;
+                case SEL_REX_W:
+                    break;
+                case SEL_NONE:
+                    break;
+
+            }
+        }
+
+        /*
+        while (buff[offset] != 0xc3) {
+            unsigned char opcode = buff[offset];
             if (opcode_table[opcode].flags & F_MODRM) {
-                puts("MODRM");
-                modrm_info* info = malloc(1 * sizeof(struct MODRM_STRUCT));
-                parse_modrm(buff, &j, info);
+                Modrm* modrm = malloc(1 * sizeof(struct MODRM_STRUCT));
+                parse_modrm(buff, &offset, modrm);
             }
             if (opcode_table[opcode].flags & F_PREFIX) {
-                puts("PREFIX");
+                if (opcode_table[opcode].flags & F_REX) {
+                    REX* rex = malloc(1 * sizeof(struct REX_STRUCT));
+                    parse_rex(buff, &offset, rex);
+                    puts("PREFIX");
+                    offset++;
+                    continue;
+                }
             }
-            printf("    %lx:    %x\t\t%s\n", j, opcode, opcode_table[opcode].mnemonic);
-            j++;
+            printf("    %lx:    %x\t\t%s\n", offset, opcode, opcode_table[opcode].mnemonic);
+            offset++;
            
         }
-    //}
+        */
     
 }
