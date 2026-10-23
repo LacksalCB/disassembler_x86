@@ -19,19 +19,32 @@ $1 == "DEFAULT_BIT_WIDTH" {
     next
 }
 
-$1 == "OPERANDS" {
+$1 ~ /OPERANDS\s*/ {
     print "\n// OPERANDS:"
-    print "void init_operand_tables(void);"
+    print "void init_operand_tables();"
+    for (i = 2; i < NF; i += 2) {
+        sub(/\s*/, "", $i)
+        printf "extern char %s[%s][4];\n", tolower($i), $(i+1) 
+    }
+
     next
 }
 
-$1 == "OPCODES" {
+$1 ~ /OPCODES\s*/ {
     print "\n//OPCODES:"
-    print "extern struct opcode opcode_table_one_byte[256];"
+    print "void init_opcode_tables();"
+    for (i = 2; i < NF; i += 3) {
+        name = tolower($i)
+        sub(/\s*/, "", name)
+        size = $(i+2)
+        for (j = 1; j <= $(i+1); j++) {
+            printf "extern struct opcode %s%s[%s];\n", name, j, size 
+        }
+    }
     next
 }
 
-/^[a-zA-Z0-9_]*+\s*+=+\s*+{+\s*/ {
+/^[a-zA-Z0-9_]*+\s*+=+\s*[a-zA-Z0-9_,]*+{+\s*/ {
     print ""
     current_block = $1
     sub(/\s.*/, "", current_block)
@@ -59,6 +72,10 @@ current_block == "FLAGS" {
 
 current_block == "STRUCTURES" {
     print $0
+}
+
+current_block == "OPERANDS" {
+    print "HERE"
 }
 
 END {

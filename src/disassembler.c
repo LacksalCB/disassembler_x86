@@ -60,10 +60,19 @@ void disassemble(unsigned char* buff, header_t* header) {
         uint64_t offset = header->symtab[30].symtab_entry->offset;
         printf("\n%016lx: <%s>\n", offset, header->symtab[30].symtab_entry->name);   
 
-        struct opcode* op = &opcode_table_one_byte[buff[offset]];
+        char byte = buff[offset];
+        struct opcode* op = &opcode_table_bytes1[byte];
+       
+        if (op->flags & F_NONE) {
+            
+        }
+        if (op->flags & F_REG_BITS) {
+            op->operands[0] = reg_64[buff[offset]&0b111];
+            printf("    %lx:    %x\t\t%s %s\n", offset, byte, opcode_table_bytes1[byte].mnemonic, reg_64[0]);
+        }
 
-        while (op->state != SEL_NONE) {
-            switch (op->state) {
+        while (op->sel != SEL_NONE) {
+            switch (op->sel) {
                 case SEL_NEXT_BYTE:
                     op = &op->next[buff[offset++]];
                     break;
@@ -79,27 +88,4 @@ void disassemble(unsigned char* buff, header_t* header) {
 
             }
         }
-
-        /*
-        while (buff[offset] != 0xc3) {
-            unsigned char opcode = buff[offset];
-            if (opcode_table[opcode].flags & F_MODRM) {
-                Modrm* modrm = malloc(1 * sizeof(struct MODRM_STRUCT));
-                parse_modrm(buff, &offset, modrm);
-            }
-            if (opcode_table[opcode].flags & F_PREFIX) {
-                if (opcode_table[opcode].flags & F_REX) {
-                    REX* rex = malloc(1 * sizeof(struct REX_STRUCT));
-                    parse_rex(buff, &offset, rex);
-                    puts("PREFIX");
-                    offset++;
-                    continue;
-                }
-            }
-            printf("    %lx:    %x\t\t%s\n", offset, opcode, opcode_table[opcode].mnemonic);
-            offset++;
-           
-        }
-        */
-    
 }

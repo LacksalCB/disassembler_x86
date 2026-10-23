@@ -1,0 +1,188 @@
+OPCODE_LENGTH=0 
+DEFAULT_BIT_WIDTH=32
+
+FLAGS: 
+
+FLAGS = {
+F_NONE 
+F_BITS_EIGHT
+F_MODRM 
+F_SIB    
+F_IMM8    
+F_IMM32   
+F_GROUP   
+F_REX  
+F_PREFIX
+F_REG_BITS
+F_ESCAPE
+}end
+
+STRUCTURES:
+
+STRUCTURES = {
+enum selector {
+    SEL_NONE,
+    SEL_NEXT_BYTE,
+    SEL_MODRM_REG,
+    SEL_PREFIX,
+    SEL_REX_W
+};
+
+struct opcode {
+    const char* mnemonic;
+    uint32_t flags;
+    uint8_t operands[4];
+    enum selector state;
+    struct opcode* next;
+};
+
+typedef struct MODRM_STRUCT {
+    uint8_t mod;
+    uint8_t rm;
+    uint8_t reg;
+    int has_sib;
+    uint8_t sib;
+    uint32_t disp;
+}Modrm;
+
+typedef struct REX_STRUCT {
+    uint8_t W;
+    uint8_t R;
+    uint8_t X;
+    uint8_t B;
+}REX;
+
+struct Instruction {
+    uint8_t prefixes[4];
+    REX rex;
+    struct opcode* op;
+    Modrm modrm;
+    uint8_t has_modrm;
+    int64_t disp;
+    int64_t imm;
+    size_t length;
+};
+}end
+
+OPERANDS = REG_8_SHORT,REG_8_REX,REG_16,REG_32,REG_64
+
+REG_8_SHORT:8:4 {
+000=al
+001=cl
+010=bl
+011=dl
+100=ah
+101=ch
+110=dh
+111=bh
+}end
+
+REG_8_REX:8:4 {
+100=spl
+101=bpl
+110=sil
+111=dil
+}end
+
+REG_16:8:4 { 
+000=ax
+001=cx
+010=dx
+011=bx
+100=sp
+101=bp
+110=si
+111=di
+}end
+
+REG_32:8:4 {  
+000=eax
+001=ecx
+010=edx
+011=ebx
+100=esp
+101=ebp
+110=esi
+111=edi
+}end
+
+REG_64:16:4 {
+000=rax
+001=rcx
+010=rdx
+011=rbx
+100=rsp
+101=rbp
+110=rsi
+111=rdi
+1000=r8
+1001=r9
+1010=r10
+1011=r11
+1100=r12
+1101=r13
+1110=r14
+1111=r15
+}end
+
+OPCODES = OPCODE_TABLE_BYTES=3, GRP=21
+
+OPCODE_TABLE_BYTES_1 {
+00: "add",F_MODRM|F_BITS_EIGHT
+01: "add",F_MODRM
+#0f: $OPCODE_TWO_BYTE,F_NONE
+
+[64]:40: REX,F_PREFIX|F_REX
+[64]:41: REX,F_PREFIX|F_REX
+[64]:42: REX,F_PREFIX|F_REX
+[64]:43: REX,F_PREFIX|F_REX
+[64]:44: REX,F_PREFIX|F_REX
+[64]:45: REX,F_PREFIX|F_REX
+[64]:46: REX,F_PREFIX|F_REX
+[64]:47: REX,F_PREFIX|F_REX
+[64]:48: REX,F_PREFIX|F_REX
+[64]:49: REX,F_PREFIX|F_REX
+[64]:4a: REX,F_PREFIX|F_REX
+[64]:4b: REX,F_PREFIX|F_REX
+[64]:4c: REX,F_PREFIX|F_REX
+[64]:4d: REX,F_PREFIX|F_REX
+[64]:4e: REX,F_PREFIX|F_REX
+[64]:4f: REX,F_PREFIX|F_REX
+
+55: "push",F_REG_BITS
+5d: "pop",F_REG_BITS
+
+#66: OPERAND_EX,F_PREFIX 
+#67: ADDRESS_EX,F_PREFIX
+
+83: $GRP1,F_MODRM
+89: "mov",F_MODRM
+8b: "mov",F_MODRM
+
+b8: "mov",F_IMM32 
+
+c3: "ret",F_NONE
+c7: "movl",F_MODRM
+
+#f3: $GRP_1,F_PREFIX
+}
+
+#OPCODE_TABLE_BYTES_2 {
+#1e: $GRP_21,F_NONE 
+#}
+
+GRP1 {
+"add",F_MODRM
+"or",F_MODRM
+"adc",F_MODRM
+"sbb",F_MODRM
+"and",F_MODRM
+"sub",F_MODRM
+"xor",F_MODRM
+"cmp",F_MODRM
+}
+
+#GRP_21 {
+#07: endbr64 #not sure how to format this    
+#}
+

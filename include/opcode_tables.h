@@ -31,7 +31,7 @@ struct opcode {
     const char* mnemonic;
     uint32_t flags;
     uint8_t operands[4];
-    enum selector state;
+    enum selector sel;
     struct opcode* next;
 };
 
@@ -63,9 +63,38 @@ struct Instruction {
 };
 
 // OPERANDS:
-void init_operand_tables(void);
+void init_operand_tables();
+extern char reg_8_short[8][4];
+extern char reg_8_rex[8][4];
+extern char reg_16[8][4];
+extern char reg_32[8][4];
+extern char reg_64[16][4];
 
 //OPCODES:
-extern struct opcode opcode_table_one_byte[256];
+void init_opcode_tables();
+extern struct opcode opcode_table_bytes1[256];
+extern struct opcode opcode_table_bytes2[256];
+extern struct opcode opcode_table_bytes3[256];
+extern struct opcode grp1[8];
+extern struct opcode grp2[8];
+extern struct opcode grp3[8];
+extern struct opcode grp4[8];
+extern struct opcode grp5[8];
+extern struct opcode grp6[8];
+extern struct opcode grp7[8];
+extern struct opcode grp8[8];
+extern struct opcode grp9[8];
+extern struct opcode grp10[8];
+extern struct opcode grp11[8];
+extern struct opcode grp12[8];
+extern struct opcode grp13[8];
+extern struct opcode grp14[8];
+extern struct opcode grp15[8];
+extern struct opcode grp16[8];
+extern struct opcode grp17[8];
+extern struct opcode grp18[8];
+extern struct opcode grp19[8];
+extern struct opcode grp20[8];
+extern struct opcode grp21[8];
 
 #endif
