@@ -2,6 +2,8 @@
 #include "../include/utils.h"
 #include "../include/opcode_tables.h"
 
+#define COLUMN_WIDTH 24
+
 // x86_specific mod rm operand encoding rules
 void parse_modrm(unsigned char* buff, size_t* offset, Modrm* byte) {
     char modrm = buff[*offset++];
@@ -43,8 +45,50 @@ void parse_rex(unsigned char* buff, size_t* offset, REX* byte) {
     }
 }
 
+void print_instr(struct Instruction instr, unsigned char* buff, uint64_t offset) {
+    printf("    %08lx:    ", offset);
+
+    int bytes_printed = 0;
+    for (size_t i = 0; i < instr.length; i++) {
+        printf("%02x ", buff[offset+i-instr.length+1]);
+        bytes_printed += 3;
+    }
+    
+    for (int i = bytes_printed; i < COLUMN_WIDTH; i++) {
+        printf(" ");
+    }
+
+    if (instr.op && instr.op->mnemonic) { 
+        printf("%s", instr.op->mnemonic);
+        if (instr.op->flags & F_REG_BITS) {
+            printf("    %%%s", reg_64[buff[offset]&0b111]);
+        } else if (instr.has_modrm) {
+            
+        }
+    } else {
+        printf("<unknown>");
+    }
+
+    printf("\n");
+}
+
+struct Instruction init_instr() {
+    struct Instruction instr;
+    memset(instr.prefixes, 0, sizeof(instr.prefixes));
+    instr.has_prefix = 0;
+    instr.op = NULL;
+    instr.has_modrm = 0;
+    instr.disp = 0;
+    instr.has_disp = 0;
+    instr.imm = 0;
+    instr.has_imm = 0;
+    instr.length = 1;
+    return instr;
+}
+
 void disassemble(unsigned char* buff, header_t* header) {
     init_operand_tables();
+    init_opcode_tables();
     //int offsets[256];
     //int idx = 0;
     for (int i = 0; i < header->symtab->size; i++) {
@@ -59,33 +103,37 @@ void disassemble(unsigned char* buff, header_t* header) {
     //for (int i = 0; i < idx; i++) {
         uint64_t offset = header->symtab[30].symtab_entry->offset;
         printf("\n%016lx: <%s>\n", offset, header->symtab[30].symtab_entry->name);   
-
-        char byte = buff[offset];
-        struct opcode* op = &opcode_table_bytes1[byte];
-       
-        if (op->flags & F_NONE) {
-            
-        }
-        if (op->flags & F_REG_BITS) {
-            op->operands[0] = reg_64[buff[offset]&0b111];
-            printf("    %lx:    %x\t\t%s %s\n", offset, byte, opcode_table_bytes1[byte].mnemonic, reg_64[0]);
-        }
-
-        while (op->sel != SEL_NONE) {
-            switch (op->sel) {
-                case SEL_NEXT_BYTE:
-                    op = &op->next[buff[offset++]];
-                    break;
-                case SEL_MODRM_REG:
-                    op = &op->next[(buff[offset] >> 4) & 0b111];
-                    break;
-                case SEL_PREFIX:
-                    break;
-                case SEL_REX_W:
-                    break;
-                case SEL_NONE:
-                    break;
-
+        
+        for (;;) {
+            struct Instruction instr = init_instr();
+            unsigned char byte = buff[offset];
+            struct opcode* op = &opcode_table_bytes1[byte]; 
+            instr.op = op;
+            while (op->sel != SEL_NONE) {
+                switch (op->sel) {
+                    case SEL_NEXT_BYTE:
+                        op = &op->next[buff[offset++]];
+                        break;
+                    case SEL_MODRM_REG:
+                        op = &op->next[(buff[offset] >> 4) & 0b111];
+                        break;
+                    case SEL_PREFIX:
+                        break;
+                    case SEL_REX_W:
+                        instr.prefixes[3] = byte;
+                        instr.length++;
+                        op = &op->next[buff[offset++]];
+                        break;
+                    case SEL_NONE:
+                        break;
+                }
             }
+
+            print_instr(instr, buff, offset);
+            if (buff[offset] != 0xc3) {
+                op = &op->next[buff[offset++]];
+                continue;
+            } 
+            break;
         }
 }

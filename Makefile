@@ -15,7 +15,7 @@ OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 .PHONY: all clean awk run test
 
-all: $(SRC_DIR)/opcode_tables.c $(EXEC)
+all: $(SRC_DIR)/opcode_tables.c $(EXEC) test
 
 $(SRC_DIR)/opcode_tables.c: $(LIB_DIR)/x86_64.isad $(SRC_DIR)/awk/header_generator.awk $(SRC_DIR)/awk/table_generator.awk
 	awk -f $(SRC_DIR)/awk/table_generator.awk $(LIB_DIR)/x86_64.isad > $(SRC_DIR)/opcode_tables.c

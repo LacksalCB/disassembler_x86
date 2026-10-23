@@ -88,13 +88,10 @@ opcode_block {
     if ($1 == "") {
         next    
     }
-    if ($1 ~ /^\[+[0-9]*+\]+\s*/) { 
-        mode = $1
-        opcode = $2
-        flags = $4
-        printf "    %s[0x%s].flags = %s;\n", table, opcode, flags
-    } else { 
-        if ($2 ~ /"+[a-zA-Z0-9]+"/) { 
+    if ($1 == "}") {
+        next
+    }
+
             opcode = $1
             mnemonic = $2
             flags = $3
@@ -102,13 +99,41 @@ opcode_block {
             select = $5
             dest_table = $6
             sub(/\s*/, "", dest_table)
+            if (dest_table != "NULL") {
+                dest_table = tolower(dest_table)
+                dest_table = substr(dest_table,2)
+            }
             printf "    %s[0x%s].mnemonic =%s;\n", table, opcode, mnemonic
             printf "    %s[0x%s].flags = %s;\n", table, opcode, flags
             printf "    memcpy(%s[0x%s].operands, (int[])%s, sizeof(%s[0x%s].operands));\n", table, opcode, operands, table, opcode
             printf "    %s[0x%s].sel = %s;\n", table, opcode, select
             printf "    %s[0x%s].next = %s;\n", table, opcode, dest_table
-        } 
-    }   
+        
+    #if ($1 ~ /^\[+[0-9]*+\]+\s*/) { 
+    #    mode = $1
+    #    opcode = $2
+    #    flags = $4
+    #    printf "    %s[0x%s].flags = %s;\n", table, opcode, flags
+    #} else { 
+    #    if ($2 ~ /"+[a-zA-Z0-9]+"/) { 
+    #        opcode = $1
+    #        mnemonic = $2
+    #       flags = $3
+    #        operands = $4
+    #        select = $5
+    #        dest_table = $6
+    #        sub(/\s*/, "", dest_table)
+    #        if (dest_table != "NULL") {
+    #            dest_table = tolower(dest_table)
+    #            sub("$", "", dest_table)
+    #        }
+    #        printf "    %s[0x%s].mnemonic =%s;\n", table, opcode, mnemonic
+    #        printf "    %s[0x%s].flags = %s;\n", table, opcode, flags
+    #        printf "    memcpy(%s[0x%s].operands, (int[])%s, sizeof(%s[0x%s].operands));\n", table, opcode, operands, table, opcode
+    #        printf "    %s[0x%s].sel = %s;\n", table, opcode, select
+    #        printf "    %s[0x%s].next = %s;\n", table, opcode, dest_table
+    #    } 
+    #}   
     next
 }
 

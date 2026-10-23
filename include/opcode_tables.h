@@ -53,12 +53,15 @@ typedef struct REX_STRUCT {
 
 struct Instruction {
     uint8_t prefixes[4];
+    uint8_t has_prefix;
     REX rex;
     struct opcode* op;
     Modrm modrm;
     uint8_t has_modrm;
     int64_t disp;
+    uint8_t has_disp;
     int64_t imm;
+    uint8_t has_imm;
     size_t length;
 };
 
